@@ -40,23 +40,23 @@ envios-app/
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/Josed20/PC1_Despliegue-de-aplicaciones.git
-cd PC1_Despliegue-de-aplicaciones/envios-app
+git clone https://github.com/Josed20/22200150-Cabrera-pc01-despliegue-aplicaciones-2026-02-rutaexpress.git
+cd 22200150-Cabrera-pc01-despliegue-aplicaciones-2026-02-rutaexpress/envios-app
 
 # 2. Crear archivo .env a partir del ejemplo
 cp .env.example .env
 # Editar .env y reemplazar REEMPLAZA_CON_TU_PASSWORD con una contraseña real
 ```
 
-## Construir y publicar la imagen
+## Imagen en Docker Hub (Publicada)
+
+- **Repositorio Docker Hub**: [https://hub.docker.com/r/josed20/envios-app](https://hub.docker.com/r/josed20/envios-app)
+- **Imagen versionada**: `josed20/envios-app:1.0.0`
 
 ```bash
-# Construir la imagen localmente
-docker build -t tu-usuario-dockerhub/envios-app:1.0.0 .
-
-# Publicar en Docker Hub
-docker login
-docker push tu-usuario-dockerhub/envios-app:1.0.0
+# Descarga de la imagen oficial (como requiere la práctica)
+docker pull josed20/envios-app:1.0.0
+```
 
 # Para usar la imagen publicada, actualizar .env:
 # DOCKER_IMAGE=tu-usuario-dockerhub/envios-app:1.0.0

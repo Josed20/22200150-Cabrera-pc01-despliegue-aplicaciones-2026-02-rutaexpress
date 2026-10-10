@@ -30,7 +30,7 @@ de coordinación confiable es la base de datos.
 
 PREGUNTA 3 — Entrega y configuración
 --------------------------------------
-Publiqué la imagen en Docker Hub con versión etiquetada (ej. usuario/envios-app:1.0.0).
+Publiqué la imagen en Docker Hub con versión etiquetada: josed20/envios-app:1.0.0.
 Otra oficina solo necesita:
   1. Clonar el repositorio
   2. Copiar .env.example como .env y definir su contraseña
