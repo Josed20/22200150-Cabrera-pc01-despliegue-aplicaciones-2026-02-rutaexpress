@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS envios (
     id               UUID PRIMARY KEY,
     destinatario     TEXT NOT NULL,
     direccion        TEXT NOT NULL,
-    idempotency_key  TEXT UNIQUE,          -- clave de idempotencia opcional (previene duplicados)
+    idempotency_key  TEXT UNIQUE,          -- clave de idempotencia (previene duplicados)
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -16,19 +16,21 @@ CREATE TABLE IF NOT EXISTS envios (
 CREATE INDEX IF NOT EXISTS idx_envios_idempotency ON envios(idempotency_key)
     WHERE idempotency_key IS NOT NULL;
 
--- Tabla de registro de intentos (auditoría completa)
+-- Tabla de registro de intentos (auditoría completa y persistente)
 CREATE TABLE IF NOT EXISTS intentos (
-    id          UUID PRIMARY KEY,
-    fecha_hora  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    metodo      TEXT NOT NULL,              -- HTTP method (GET, POST, etc.)
-    ruta        TEXT NOT NULL,              -- endpoint path
-    instancia   TEXT,                       -- replica que atendió la solicitud
-    resultado   TEXT,                       -- ACEPTADO | DUPLICADO | RECHAZADO | ERROR
-    envio_id    UUID REFERENCES envios(id), -- envío relacionado (si aplica)
-    http_code   INTEGER                     -- código HTTP de la respuesta
+    id              UUID PRIMARY KEY,
+    fecha_hora      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    metodo          TEXT NOT NULL,              -- GET, POST, etc.
+    ruta            TEXT NOT NULL,              -- /envios, /health, etc.
+    instancia       TEXT NOT NULL,              -- app1, app2, app3
+    resultado       TEXT NOT NULL,              -- ACEPTADO | REINTENTO_DUPLICADO | RECHAZADO | ERROR
+    envio_id        UUID REFERENCES envios(id), -- ID del envío relacionado (si aplica)
+    idempotency_key TEXT,                       -- clave para relacionar intentos de un mismo envío
+    cliente_ip      TEXT,                       -- IP de origen
+    http_code       INTEGER                     -- Código HTTP de respuesta
 );
 
--- Índice para búsqueda por envío relacionado
+-- Índices para búsqueda rápida
 CREATE INDEX IF NOT EXISTS idx_intentos_envio_id ON intentos(envio_id);
--- Índice para ordenar por fecha
+CREATE INDEX IF NOT EXISTS idx_intentos_idempotency ON intentos(idempotency_key);
 CREATE INDEX IF NOT EXISTS idx_intentos_fecha ON intentos(fecha_hora DESC);
