@@ -76,6 +76,6 @@ try {
 # 3. Consultar logs de Nginx demostrando el registro de HTTP 429
 Write-Host "`n[3/3] Consultando registros de auditoría en Nginx (/var/log/nginx/access.log)..." -ForegroundColor Yellow
 Write-Host "Buscando rechazos HTTP 429 registrados antes de llegar a la aplicación:" -ForegroundColor Yellow
-docker compose exec nginx cat /var/log/nginx/access.log | Select-String "status=429" | Select-Object -Last 10
+docker compose exec -T nginx cat /var/log/nginx/access.log | Select-String "status=429" | Select-Object -Last 10
 
 Write-Host "`nPrueba 4 completada exitosamente." -ForegroundColor Cyan

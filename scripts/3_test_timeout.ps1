@@ -45,7 +45,7 @@ try {
 
 # 3. Acreditar que el registro se completó en PostgreSQL antes del timeout
 Write-Host "`n[3/4] Acreditando en PostgreSQL que el envío YA FUE REGISTRADO:" -ForegroundColor Yellow
-docker compose exec db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key, created_at FROM envios WHERE idempotency_key = '$claveIdempotencia';"
+docker compose exec -T db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key, created_at FROM envios WHERE idempotency_key = '$claveIdempotencia';"
 
 # Desactivar SIMULATE_DELAY
 Write-Host "`nRestableciendo SIMULATE_DELAY=false en app1..." -ForegroundColor Yellow
@@ -67,6 +67,6 @@ try {
 
 # Verificar conteo final en BD
 Write-Host "`nVerificación final en BD: Total de registros con esta clave (DEBE SER 1):" -ForegroundColor Yellow
-docker compose exec db psql -U enviosuser -d enviosdb -c "SELECT COUNT(*) as total_envios FROM envios WHERE idempotency_key = '$claveIdempotencia';"
+docker compose exec -T db psql -U enviosuser -d enviosdb -c "SELECT COUNT(*) as total_envios FROM envios WHERE idempotency_key = '$claveIdempotencia';"
 
 Write-Host "`nPrueba 3 completada exitosamente." -ForegroundColor Cyan

@@ -62,7 +62,7 @@ Write-Host "Respuesta 2: $($res2.Content)"
 
 # Verificar en PostgreSQL que existe un único envío
 Write-Host "`nVerificando en PostgreSQL (debe haber 1 solo envío con esta clave)..." -ForegroundColor Yellow
-docker compose exec db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key, created_at FROM envios WHERE idempotency_key = '$claveIdempotencia';"
+docker compose exec -T db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key, created_at FROM envios WHERE idempotency_key = '$claveIdempotencia';"
 
 # 2. Dos envíos intencionales con mismo destinatario y dirección
 Write-Host "`n[2/2] Registrando 2 envíos NUEVOS INTENCIONALES con mismo destinatario y dirección..." -ForegroundColor Yellow
@@ -86,6 +86,6 @@ $respNuevo2 = Invoke-RestMethod -Uri "http://localhost:8080/envios" -Method Post
 Write-Host "Envío Intencional 2 Creado: ID = $($respNuevo2.id) (HTTP 201)" -ForegroundColor Green
 
 Write-Host "`nVerificando ambos envíos intencionales en la base de datos:" -ForegroundColor Yellow
-docker compose exec db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key FROM envios WHERE destinatario = 'Carlos Gomez';"
+docker compose exec -T db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key FROM envios WHERE destinatario = 'Carlos Gomez';"
 
 Write-Host "`nPrueba 2 completada exitosamente." -ForegroundColor Cyan

@@ -33,7 +33,7 @@ Write-Host "  Envío 2 Creado: ID = $($res2.id) | Destinatario: $($res2.destinat
 Write-Host "  Envío 3 Creado: ID = $($res3.id) | Destinatario: $($res3.destinatario)" -ForegroundColor Green
 
 Write-Host "`n[2/4] Consultando en PostgreSQL ANTES de recrear contenedores:" -ForegroundColor Yellow
-docker compose exec db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key FROM envios WHERE idempotency_key IN ('$clavePersistente1', '$clavePersistente2', '$clavePersistente3');"
+docker compose exec -T db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key FROM envios WHERE idempotency_key IN ('$clavePersistente1', '$clavePersistente2', '$clavePersistente3');"
 
 # 3. Recrear los contenedores (down y up)
 Write-Host "`n[3/4] Recreando todos los contenedores con 'docker compose down' y 'docker compose up -d'..." -ForegroundColor Yellow
@@ -45,7 +45,7 @@ Start-Sleep -Seconds 8
 
 # 4. Comprobar que permanecen los mismos IDs y datos
 Write-Host "`n[4/4] Verificando en PostgreSQL DESPUÉS de la recreación:" -ForegroundColor Yellow
-docker compose exec db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key FROM envios WHERE idempotency_key IN ('$clavePersistente1', '$clavePersistente2', '$clavePersistente3');"
+docker compose exec -T db psql -U enviosuser -d enviosdb -c "SELECT id, destinatario, direccion, idempotency_key FROM envios WHERE idempotency_key IN ('$clavePersistente1', '$clavePersistente2', '$clavePersistente3');"
 
 # 5. Reintentar una de las operaciones ya completadas
 Write-Host "`nReintentando la operación del Envío 1 (clave: $clavePersistente1)..." -ForegroundColor Yellow
