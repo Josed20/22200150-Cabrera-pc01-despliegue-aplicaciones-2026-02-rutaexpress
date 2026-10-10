@@ -1,0 +1,87 @@
+RESPUESTAS A LAS PREGUNTAS DE ANÁLISIS
+PC01 - Despliegue de Aplicaciones - RutaExpress
+================================================
+
+PREGUNTA 1 — Timeout y recuperación
+-------------------------------------
+En la prueba, el trabajador envió una solicitud a POST /envios con una idempotency_key única.
+La réplica app1 completó el registro en PostgreSQL, pero luego esperó 5 segundos antes de
+responder. El cliente (Postman) estaba configurado con timeout de 2 segundos, por lo que dejó
+de esperar sin recibir respuesta.
+
+Lo que evita mi solución es que al reintentar (con la misma idempotency_key), la siguiente
+réplica (ej. app2) detecta que ya existe un envío con esa clave y retorna el registro original
+sin crear uno nuevo. Esto es importante para RutaExpress porque evita dos recojos o dos cobros
+por el mismo paquete, lo cual generaría pérdidas económicas y dañaría la confianza del cliente
+al ver cargos duplicados en sus registros.
+
+PREGUNTA 2 — Concurrencia y réplicas
+--------------------------------------
+En la prueba, dos solicitudes con la misma idempotency_key llegaron simultáneamente a app1
+y app3. Gracias a la restricción UNIQUE en la columna idempotency_key de PostgreSQL, solo
+una transacción logró hacer el INSERT; la otra recibió un error de clave duplicada y retornó
+el envío ya registrado.
+
+Sin este control, ambas réplicas habrían creado envíos distintos para la misma operación.
+Para RutaExpress esto significaría dos recojos programados, dos cobros al cliente y confusión
+en el tracking del paquete. Controlar este caso es especialmente crítico cuando hay múltiples
+instancias porque no existe un estado compartido en memoria entre las réplicas; el único punto
+de coordinación confiable es la base de datos.
+
+PREGUNTA 3 — Entrega y configuración
+--------------------------------------
+Publiqué la imagen en Docker Hub con versión etiquetada (ej. usuario/envios-app:1.0.0).
+Otra oficina solo necesita:
+  1. Clonar el repositorio
+  2. Copiar .env.example como .env y definir su contraseña
+  3. Ejecutar: docker compose up -d
+
+El Dockerfile garantiza que la aplicación corre exactamente con las mismas dependencias y
+versión de Node.js en cualquier equipo, independientemente del sistema operativo instalado
+(Windows, Mac, Linux). Esto elimina el problema "en mi máquina funciona" y evita tener que
+instalar Node.js, npm o PostgreSQL manualmente. La imagen versionada también permite
+hacer rollback si una versión nueva tiene problemas.
+
+PREGUNTA 4 — Persistencia y recuperación
+-----------------------------------------
+Los datos de PostgreSQL se almacenan en el volumen Docker postgres_data. Al ejecutar
+"docker compose down" y luego "docker compose up -d", los envíos registrados siguen
+disponibles con los mismos IDs. Comprobé en DBeaver que los tres envíos de prueba
+permanecían con sus UUIDs originales.
+
+Al reintentar una operación ya completada (con la misma idempotency_key) después de recrear
+los contenedores, el servicio la detectó como duplicada y no creó un segundo envío.
+
+Para RutaExpress, perder esta información significaría no saber qué paquetes fueron
+registrados, perdiendo el historial de recojos y cobros. También se perderían los registros
+de auditoría que podrían necesitarse para resolver disputas con clientes.
+
+PREGUNTA 5 — Continuidad del servicio
+--------------------------------------
+Al detener app2, Nginx dejó de enrutar solicitudes hacia ella (la marcó como no disponible)
+y continuó distribuyendo las peticiones entre app1 y app3. Durante la prueba, todas las
+solicitudes siguientes se completaron exitosamente. Esto es beneficioso para una oficina
+porque puede continuar registrando envíos durante su jornada aunque una réplica falle,
+sin interrumpir la atención al cliente.
+
+Sin embargo, tener tres réplicas no garantiza disponibilidad absoluta porque:
+- Si la base de datos (db) falla, las tres réplicas dejan de funcionar.
+- Si Nginx falla, ninguna réplica es accesible.
+- Problemas de red pueden aislar todas las instancias simultáneamente.
+La redundancia de réplicas solo protege contra fallas individuales de la aplicación.
+
+PREGUNTA 6 — Rechazos por exceso de solicitudes
+-------------------------------------------------
+Durante la prueba de carga, envié 10 solicitudes POST /envios en menos de 1 segundo desde
+la misma IP. Las primeras 6 (2 normales + 4 de ráfaga) se procesaron exitosamente.
+Las 4 restantes recibieron HTTP 429. Los registros en /var/log/nginx/access.log mostraron
+la IP del cliente, la fecha/hora, el método, la ruta y el código 429 para cada rechazo.
+
+Este control se justifica porque sin límite una oficina con mal código o un ataque podría
+saturar el servidor y afectar a todas las demás oficinas de RutaExpress.
+
+Si un trabajador reclama que su solicitud fue rechazada, los logs de Nginx permiten:
+  1. Confirmar que efectivamente hubo un rechazo (código 429) desde su IP en esa fecha/hora.
+  2. Verificar si fue por exceso de intentos o si es un error diferente.
+  3. Demostrarle que el sistema funcionó correctamente y pedirle que espere unos segundos
+     antes de reintentar, o que use una idempotency_key para evitar duplicados al reintentar.
